@@ -1,21 +1,22 @@
 package me.veryyoung.dingding.luckymoney;
 
-import android.content.Context;
 import android.view.MotionEvent;
 import android.view.View;
 
 import org.json.JSONObject;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
 
-import static de.robv.android.xposed.XposedBridge.log;
+import static de.robv.android.xposed.XposedHelpers.callMethod;
 import static de.robv.android.xposed.XposedHelpers.callStaticMethod;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static de.robv.android.xposed.XposedHelpers.findClass;
+import static de.robv.android.xposed.XposedHelpers.findConstructorBestMatch;
 import static de.robv.android.xposed.XposedHelpers.getObjectField;
 
 
@@ -36,6 +37,7 @@ public class Main implements IXposedHookLoadPackage {
             findAndHookMethod(MAP_CLASS_NAME, lpparam.classLoader, MAP_FUNCTION_NAME, int.class, message, new XC_MethodHook() {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+
                             if (null != param.args[1]) {
                                 Field messageContentFileld = param.args[1].getClass().getSuperclass().getSuperclass().getDeclaredField("mMessageContent");
                                 String messageContent = messageContentFileld.get(param.args[1]).toString();
@@ -47,16 +49,10 @@ public class Main implements IXposedHookLoadPackage {
                                     Long sender = jsonObject.getLong("sid");
                                     String clusterId = jsonObject.getString("clusterid");
 
-                                    log("红包来啦！");
-                                    log(sender.toString());
-                                    log(clusterId);
+                                    Object RedPacketsRpc = callStaticMethod(findClass("wl", lpparam.classLoader), "a");
+                                    Constructor constructor = findConstructorBestMatch(findClass("wl$9", lpparam.classLoader), RedPacketsRpc.getClass(), findClass("aae", lpparam.classLoader));
 
-                                    Context context = (Context) callStaticMethod(findClass("com.alibaba.doraemon.Doraemon", lpparam.classLoader), "getContext");
-
-//                                    Class<?> ServiceFactory = findClass("cdk", lpparam.classLoader);
-//                                    Class<?> RedEnvelopPickIService = findClass("com.alibaba.android.dingtalk.redpackets.idl.service.RedEnvelopPickIService", lpparam.classLoader);
-//                                    Object RedEnvelopPickService = callStaticMethod(ServiceFactory, "a", RedEnvelopPickIService);
-//                                    callMethod(RedEnvelopPickService, "pickRedEnvelopCluster", sender, clusterId, null);
+                                    callMethod(callStaticMethod(findClass("cdk", lpparam.classLoader), "a", findClass("com.alibaba.android.dingtalk.redpackets.idl.service.RedEnvelopPickIService", lpparam.classLoader)), "pickRedEnvelopCluster", sender, clusterId, constructor.newInstance(RedPacketsRpc, null));
                                 }
                             }
                         }
